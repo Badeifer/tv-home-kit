@@ -1,0 +1,39 @@
+{
+  "dock_apps": [
+    "com.netflix.ninja",
+    "com.google.android.youtube.tv",
+    "com.hulu.livingroomplus",
+    "com.disney.disneyplus",
+    "com.amazon.amazonvideo.livingroom",
+    "com.spotify.tv.android"
+  ],
+  "hidden_apps": [
+    "com.tcl.usercenter",
+    "com.tcl.messagebox",
+    "com.tcl.hotelmenu",
+    "com.tcl.factory.view",
+    "com.tcl.useragreement"
+  ],
+  "live_tv_package": "com.tcl.tv",
+  "advanced_effects": true,
+  "always_show_names": false,
+  "app_glow": true,
+  "app_library": true,
+  "background_color": "#030008",
+  "clock_wallpaper": true,
+  "dock_band": false,
+  "fade_rows": true,
+  "focus_overshoot": true,
+  "glass_style": "rim",
+  "glow_style": "radial",
+  "greeting_name": "",
+  "home_idle_clock_minutes": 20,
+  "icon_only_buttons": true,
+  "key_filter": false,
+  "library_button": true,
+  "tile_menu": true,
+  "uniform_tiles": true,
+  "wallpaper": true,
+  "wallpaper_true_color": true,
+  "wifi_status_color": true
+}

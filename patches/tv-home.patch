@@ -1,0 +1,818 @@
+diff --git a/addons/quiet-hours/app/build.gradle b/addons/quiet-hours/app/build.gradle
+index 81bb31d..2c8f445 100644
+--- a/addons/quiet-hours/app/build.gradle
++++ b/addons/quiet-hours/app/build.gradle
+@@ -14,6 +14,19 @@ android {
+         versionName '0.1'
+     }
+ 
++    signingConfigs {
++        debug {
++            // tv-home: one fixed key from the build environment, so every build installs over the last one.
++            def ks = System.getenv('TVHOME_KEYSTORE')
++            if (ks) {
++                storeFile file(ks)
++                storePassword 'android'
++                keyAlias 'androiddebugkey'
++                keyPassword 'android'
++            }
++        }
++    }
++
+     buildTypes {
+         release {
+             minifyEnabled true
+diff --git a/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/MainActivity.java b/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/MainActivity.java
+index 4294112..01c9fea 100644
+--- a/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/MainActivity.java
++++ b/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/MainActivity.java
+@@ -36,15 +36,16 @@ public class MainActivity extends Activity {
+         audio = getSystemService(AudioManager.class);
+         LinearLayout page = new LinearLayout(this);
+         page.setOrientation(LinearLayout.VERTICAL);
+-        page.setBackgroundColor(0xFF0D1117);
++        page.setBackgroundColor(0xFF0C0907);
+         page.setPadding(px(48), px(32), px(48), px(24));
+         TextView title = new TextView(this);
+         title.setText(R.string.app_name);
+-        title.setTextSize(28);
++        title.setTextSize(30);
++        title.setTypeface(android.graphics.Typeface.create("serif", android.graphics.Typeface.NORMAL));
+         title.setTextColor(0xFFFFFFFF);
+         status = new TextView(this);
+         status.setTextSize(15);
+-        status.setTextColor(0xFF8B949E);
++        status.setTextColor(0xFFA89F92);
+         status.setPadding(0, 0, 0, px(16));
+         page.addView(title);
+         page.addView(status);
+@@ -57,7 +58,7 @@ public class MainActivity extends Activity {
+         TextView hint = new TextView(this);
+         hint.setText("◀ ▶ change    OK switch    Back closes, settings stay");
+         hint.setTextSize(13);
+-        hint.setTextColor(0xFF8B949E);
++        hint.setTextColor(0xFFA89F92);
+         hint.setPadding(px(16), px(12), 0, 0);
+         page.addView(hint);
+         setContentView(page);
+diff --git a/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/Quiet.java b/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/Quiet.java
+index 4648e91..3a1f51a 100644
+--- a/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/Quiet.java
++++ b/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/Quiet.java
+@@ -9,17 +9,17 @@ import java.util.Locale;
+ final class Quiet {
+     static final int DAY_MINUTES = 24 * 60;
+     static final int TIME_STEP = 15;
+-    static final int CAP_STEP = 5;
++    static final int CAP_STEP = 1;   // tv-home: single volume steps (the TV runs 0 to 100)
+     /** The lowest cap: 5 % of the TV's range, never silence, so a cap can't look like a broken TV. */
+-    static final int MIN_CAP = 5;
++    static final int MIN_CAP = 1;
+ 
+     enum Mode { OFF, SCHEDULED, ALWAYS }
+ 
+     static final class Settings {
+         Mode mode = Mode.SCHEDULED;
+         /** The highest volume allowed, in percent of the TV's media volume range. */
+-        int cap = 20;
+-        int start = 20 * 60;
++        int cap = 7;            // tv-home: volume 7 of 100
++        int start = 0;          // tv-home: from midnight
+         int end = 7 * 60;
+         /** Headphones don't wake the room: no cap while sound goes to them. */
+         boolean headphonesFree = true;
+diff --git a/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/Row.java b/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/Row.java
+index d61110f..8809f9f 100644
+--- a/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/Row.java
++++ b/addons/quiet-hours/app/src/main/java/io/github/maxhayim/quiethours/Row.java
+@@ -51,7 +51,7 @@ final class Row extends LinearLayout {
+         text.addView(label);
+         desc = new TextView(context);
+         desc.setTextSize(12);
+-        desc.setTextColor(0xFF8B949E);
++        desc.setTextColor(0xFFA89F92);
+         desc.setPadding(0, Math.round(2 * dp), Math.round(16 * dp), 0);
+         text.addView(desc);
+         setDetail(description);
+@@ -62,7 +62,7 @@ final class Row extends LinearLayout {
+             track.setOrientation(HORIZONTAL);
+             track.setBackgroundColor(0x33FFFFFF);
+             fill = new View(context);
+-            fill.setBackgroundColor(0xFF8E7CFF);
++            fill.setBackgroundColor(0xFFD8A65E);
+             rest = new View(context);
+             track.addView(fill, new LayoutParams(0, LayoutParams.MATCH_PARENT, 0f));
+             track.addView(rest, new LayoutParams(0, LayoutParams.MATCH_PARENT, 1f));
+@@ -77,7 +77,7 @@ final class Row extends LinearLayout {
+ 
+         value = new TextView(context);
+         value.setTextSize(17);
+-        value.setTextColor(0xFFC9D1D9);
++        value.setTextColor(0xFFE8E0D2);
+         value.setGravity(Gravity.END);
+         value.setMinWidth(Math.round(90 * dp));
+         addView(value, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+diff --git a/addons/quiet-hours/app/src/main/res/drawable/banner.xml b/addons/quiet-hours/app/src/main/res/drawable/banner.xml
+index 0c37258..7a7e2b1 100644
+--- a/addons/quiet-hours/app/src/main/res/drawable/banner.xml
++++ b/addons/quiet-hours/app/src/main/res/drawable/banner.xml
+@@ -3,11 +3,11 @@
+ <vector xmlns:android="http://schemas.android.com/apk/res/android"
+     android:width="320dp" android:height="180dp"
+     android:viewportWidth="320" android:viewportHeight="180">
+-    <path android:fillColor="#101418" android:pathData="M0,0h320v180h-320z" />
+-    <path android:fillColor="#1E2630" android:pathData="M24,24h272v132h-272z" />
+-    <path android:fillColor="#8E7CFF" android:pathData="M70,78h18l22,-18v60l-22,-18h-18z" />
+-    <path android:fillColor="#8E7CFF" android:pathData="M132,110h20v10h-20zM160,100h20v20h-20zM188,90h20v30h-20z" />
+-    <path android:fillColor="#3A4654" android:pathData="M216,80h20v40h-20zM244,70h20v50h-20z" />
++    <path android:fillColor="#0C0907" android:pathData="M0,0h320v180h-320z" />
++    <path android:fillColor="#2A221B" android:pathData="M24,24h272v132h-272z" />
++    <path android:fillColor="#D8A65E" android:pathData="M70,78h18l22,-18v60l-22,-18h-18z" />
++    <path android:fillColor="#D8A65E" android:pathData="M132,110h20v10h-20zM160,100h20v20h-20zM188,90h20v30h-20z" />
++    <path android:fillColor="#4A3D30" android:pathData="M216,80h20v40h-20zM244,70h20v50h-20z" />
+     <path android:strokeColor="#FFFFFF" android:strokeWidth="3" android:fillColor="#00000000" android:pathData="M126,84h146" />
+     <path android:fillColor="#FFFFFF" android:pathData="M262,36a14,14 0 1 0 12,22a11,11 0 1 1 -12,-22z" />
+ </vector>
+diff --git a/addons/quiet-hours/app/src/main/res/drawable/ic_foreground.xml b/addons/quiet-hours/app/src/main/res/drawable/ic_foreground.xml
+index 2b1fb62..6f069ad 100644
+--- a/addons/quiet-hours/app/src/main/res/drawable/ic_foreground.xml
++++ b/addons/quiet-hours/app/src/main/res/drawable/ic_foreground.xml
+@@ -1,8 +1,10 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<!-- A speaker under a crescent moon inside the adaptive icon's safe zone. Own art. -->
++<!-- tv-home: a white speaker, one soft wave and a pale moon on a teal badge, like the brand marks beside it. -->
+ <vector xmlns:android="http://schemas.android.com/apk/res/android"
+     android:width="108dp" android:height="108dp"
+     android:viewportWidth="108" android:viewportHeight="108">
+-    <path android:fillColor="#8E7CFF" android:pathData="M36,50h10l12,-10v32l-12,-10h-10z" />
+-    <path android:fillColor="#FFFFFF" android:pathData="M66,38a8,8 0 1 0 7,13a6,6 0 1 1 -7,-13z" />
++    <path android:fillColor="#0F9F8F" android:pathData="M30,14 h48 a16,16 0 0 1 16,16 v48 a16,16 0 0 1 -16,16 h-48 a16,16 0 0 1 -16,-16 v-48 a16,16 0 0 1 16,-16 z" />
++    <path android:fillColor="#FFFFFF" android:pathData="M26,48 h10 l15,-12 v38 l-15,-12 h-10 z" />
++    <path android:strokeColor="#FFFFFF" android:strokeWidth="3.4" android:strokeLineCap="round" android:fillColor="#00000000" android:pathData="M58,47 q6,8 0,16" />
++    <path android:fillColor="#FDE68A" android:pathData="M71.47,30.10 A12,12 0 1,0 84.90,43.53 A9.5,9.5 0 0,1 71.47,30.10 Z" />
+ </vector>
+diff --git a/addons/quiet-hours/app/src/main/res/drawable/row_background.xml b/addons/quiet-hours/app/src/main/res/drawable/row_background.xml
+index 03ccab9..7be7c6e 100644
+--- a/addons/quiet-hours/app/src/main/res/drawable/row_background.xml
++++ b/addons/quiet-hours/app/src/main/res/drawable/row_background.xml
+@@ -3,8 +3,8 @@
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+     <item android:state_focused="true">
+         <shape android:shape="rectangle">
+-            <solid android:color="#33FFFFFF" />
+-            <stroke android:width="1dp" android:color="#55FFFFFF" />
++            <solid android:color="#FF2A221B" />
++            <stroke android:width="2dp" android:color="#FFD8A65E" />
+             <corners android:radius="12dp" />
+         </shape>
+     </item>
+diff --git a/addons/quiet-hours/app/src/main/res/xml/module_card.xml b/addons/quiet-hours/app/src/main/res/xml/module_card.xml
+index 1632d3a..4782634 100644
+--- a/addons/quiet-hours/app/src/main/res/xml/module_card.xml
++++ b/addons/quiet-hours/app/src/main/res/xml/module_card.xml
+@@ -1,2 +1,2 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<card spec="1" label="Quiet Hours" caption="Volume cap" accent="#8E7CFF" />
++<card spec="1" label="Quiet Hours" accent="#D8A65E" />
+diff --git a/addons/sleep-timer/app/build.gradle b/addons/sleep-timer/app/build.gradle
+index 5637e63..ade2165 100644
+--- a/addons/sleep-timer/app/build.gradle
++++ b/addons/sleep-timer/app/build.gradle
+@@ -14,6 +14,19 @@ android {
+         versionName '1.0'
+     }
+ 
++    signingConfigs {
++        debug {
++            // tv-home: one fixed key from the build environment, so every build installs over the last one.
++            def ks = System.getenv('TVHOME_KEYSTORE')
++            if (ks) {
++                storeFile file(ks)
++                storePassword 'android'
++                keyAlias 'androiddebugkey'
++                keyPassword 'android'
++            }
++        }
++    }
++
+     buildTypes {
+         release {
+             minifyEnabled true
+diff --git a/addons/sleep-timer/app/src/main/AndroidManifest.xml b/addons/sleep-timer/app/src/main/AndroidManifest.xml
+index a15fefd..1c33b55 100644
+--- a/addons/sleep-timer/app/src/main/AndroidManifest.xml
++++ b/addons/sleep-timer/app/src/main/AndroidManifest.xml
+@@ -13,7 +13,7 @@
+     <application
+         android:allowBackup="false"
+         android:banner="@drawable/banner"
+-        android:icon="@drawable/banner"
++        android:icon="@drawable/ic_mark"
+         android:label="@string/app_name">
+ 
+         <!-- The timer picker: the app's own tile and, on the cleanyourtv launcher, its module card. -->
+diff --git a/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/Timer.java b/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/Timer.java
+index e8bc4a8..88ce3fb 100644
+--- a/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/Timer.java
++++ b/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/Timer.java
+@@ -16,6 +16,8 @@ final class Timer {
+     private Timer() { }
+ 
+     static final int[] MINUTES = {15, 30, 60, 90, 120};
++    /** tv-home: clock times for the second row, in minutes of the day (22:30, 23:00, 23:30, 00:00, 01:00). */
++    static final int[] AT_TIMES = {22 * 60 + 30, 23 * 60, 23 * 60 + 30, 0, 60};
+     static final long WARN_MS = 60_000;
+     static final String ACTION_WARN = "io.github.luyzfernando08.sleeptimer.WARN";
+     static final String ACTION_SLEEP = "io.github.luyzfernando08.sleeptimer.SLEEP";
+diff --git a/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/TimerActivity.java b/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/TimerActivity.java
+index 1201c33..eac232e 100644
+--- a/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/TimerActivity.java
++++ b/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/TimerActivity.java
+@@ -18,18 +18,19 @@ public class TimerActivity extends Activity {
+         LinearLayout root = new LinearLayout(this);
+         root.setOrientation(LinearLayout.VERTICAL);
+         root.setGravity(Gravity.CENTER_HORIZONTAL);
+-        root.setBackgroundColor(0xFF0B0D12);
++        root.setBackgroundColor(0xFF0C0907);
+         int pad = Ui.dp(this, 48);
+         root.setPadding(pad, pad, pad, pad);
+ 
+         TextView title = Ui.text(this, 34, Color.WHITE);
+         title.setText(R.string.app_name);
++        title.setTypeface(android.graphics.Typeface.create("serif", android.graphics.Typeface.NORMAL));
+         root.addView(title);
+         TextView hint = Ui.text(this, 16, 0xB3FFFFFF);
+         hint.setText(R.string.hint);
+         hint.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 4));
+         root.addView(hint);
+-        state = Ui.text(this, 18, 0xFFB9B2FF);
++        state = Ui.text(this, 18, 0xFFD8A65E);
+         state.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 16));
+         root.addView(state);
+ 
+@@ -51,6 +52,25 @@ public class TimerActivity extends Activity {
+             });
+             if (first == null) first = row;
+         }
++        // tv-home: a second row that turns the TV off at a clock time instead of after a length.
++        LinearLayout times = new LinearLayout(this);
++        times.setOrientation(LinearLayout.HORIZONTAL);
++        times.setGravity(Gravity.CENTER_HORIZONTAL);
++        times.setPadding(0, Ui.dp(this, 12), 0, 0);
++        root.addView(times);
++        for (int at : Timer.AT_TIMES) {
++            TextView row = Ui.row(times, 150);
++            if (at != Timer.AT_TIMES[Timer.AT_TIMES.length - 1]) {
++                ((LinearLayout.LayoutParams) row.getLayoutParams()).setMarginEnd(Ui.dp(this, 12));
++            }
++            row.setGravity(Gravity.CENTER);
++            row.setText(DateFormat.getTimeFormat(this).format(nextAt(at)));
++            row.setOnClickListener(v -> {
++                long ms = nextAt(at) - System.currentTimeMillis();
++                Timer.startSeconds(this, (int) Math.max(60, ms / 1000));
++                finish();
++            });
++        }
+         cancel = Ui.row(root, 798);
+         cancel.setText(R.string.cancel);
+         cancel.setOnClickListener(v -> {
+@@ -69,6 +89,17 @@ public class TimerActivity extends Activity {
+         (Timer.end(this) != 0 ? cancel : first).requestFocus();
+     }
+ 
++    /** The next time the clock shows minuteOfDay, today or tomorrow. */
++    private static long nextAt(int minuteOfDay) {
++        java.util.Calendar t = java.util.Calendar.getInstance();
++        t.set(java.util.Calendar.HOUR_OF_DAY, minuteOfDay / 60);
++        t.set(java.util.Calendar.MINUTE, minuteOfDay % 60);
++        t.set(java.util.Calendar.SECOND, 0);
++        t.set(java.util.Calendar.MILLISECOND, 0);
++        if (t.getTimeInMillis() <= System.currentTimeMillis()) t.add(java.util.Calendar.DAY_OF_MONTH, 1);
++        return t.getTimeInMillis();
++    }
++
+     private void refresh() {
+         long end = Timer.end(this);
+         if (!Timer.canSleep()) state.setText(R.string.no_service);
+diff --git a/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/Ui.java b/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/Ui.java
+index bf1810f..dda758c 100644
+--- a/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/Ui.java
++++ b/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/Ui.java
+@@ -28,8 +28,11 @@ final class Ui {
+         row.setFocusable(true);
+         row.setClickable(true);
+         StateListDrawable bg = new StateListDrawable();
+-        bg.addState(new int[]{android.R.attr.state_focused}, pill(ctx, 0x40FFFFFF));
+-        bg.addState(new int[]{}, pill(ctx, 0x14FFFFFF));
++        // tv-home: the Cinema home's tiles: warm graphite, a gold edge when focused.
++        GradientDrawable on = pill(ctx, 0xFF3A2E23);
++        on.setStroke(dp(ctx, 2), 0xFFD8A65E);
++        bg.addState(new int[]{android.R.attr.state_focused}, on);
++        bg.addState(new int[]{}, pill(ctx, 0xFF2A221B));
+         row.setBackground(bg);
+         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(ctx, widthDp),
+                 LinearLayout.LayoutParams.WRAP_CONTENT);
+@@ -41,7 +44,7 @@ final class Ui {
+     static GradientDrawable pill(Context ctx, int color) {
+         GradientDrawable d = new GradientDrawable();
+         d.setColor(color);
+-        d.setCornerRadius(dp(ctx, 28));
++        d.setCornerRadius(dp(ctx, 14));
+         return d;
+     }
+ 
+diff --git a/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/WarningActivity.java b/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/WarningActivity.java
+index 9f76a0c..4c93b93 100644
+--- a/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/WarningActivity.java
++++ b/addons/sleep-timer/app/src/main/java/io/github/luyzfernando08/sleeptimer/WarningActivity.java
+@@ -40,14 +40,14 @@ public class WarningActivity extends Activity {
+         LinearLayout box = new LinearLayout(this);
+         box.setOrientation(LinearLayout.VERTICAL);
+         box.setGravity(Gravity.CENTER_HORIZONTAL);
+-        box.setBackground(Ui.pill(this, 0xF2161826));
++        box.setBackground(Ui.pill(this, 0xF214100C));
+         int pad = Ui.dp(this, 36);
+         box.setPadding(pad, pad, pad, pad);
+ 
+         TextView title = Ui.text(this, 30, Color.WHITE);
+         title.setText(R.string.warning_title);
+         box.addView(title);
+-        seconds = Ui.text(this, 22, 0xFFB9B2FF);
++        seconds = Ui.text(this, 22, 0xFFD8A65E);
+         seconds.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 14));
+         box.addView(seconds);
+         TextView more = Ui.row(box, 420);
+diff --git a/addons/sleep-timer/app/src/main/res/drawable/ic_mark.xml b/addons/sleep-timer/app/src/main/res/drawable/ic_mark.xml
+new file mode 100644
+index 0000000..19925e1
+--- /dev/null
++++ b/addons/sleep-timer/app/src/main/res/drawable/ic_mark.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- tv-home: the Home tile mark, a white crescent moon and stars on an indigo badge, like the brand marks beside it. -->
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="108dp" android:height="108dp"
++    android:viewportWidth="108" android:viewportHeight="108">
++    <path android:fillColor="#4F46E5" android:pathData="M30,14 h48 a16,16 0 0 1 16,16 v48 a16,16 0 0 1 -16,16 h-48 a16,16 0 0 1 -16,-16 v-48 a16,16 0 0 1 16,-16 z" />
++    <path android:fillColor="#FFFFFF" android:pathData="M47.37,28.12 A28,28 0 1,0 77.06,63.20 A23,23 0 0,1 47.37,28.12 Z" />
++    <path android:fillColor="#FDE68A" android:pathData="M74,26 L76,32 L82,34 L76,36 L74,42 L72,36 L66,34 L72,32 Z" />
++    <path android:fillColor="#FDE68A" android:pathData="M84,48 L85,51 L88,52 L85,53 L84,56 L83,53 L80,52 L83,51 Z" />
++</vector>
+diff --git a/addons/sleep-timer/app/src/main/res/xml/module_card.xml b/addons/sleep-timer/app/src/main/res/xml/module_card.xml
+index 35bef3e..0ec7d5b 100644
+--- a/addons/sleep-timer/app/src/main/res/xml/module_card.xml
++++ b/addons/sleep-timer/app/src/main/res/xml/module_card.xml
+@@ -1,2 +1,2 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<card spec="1" label="Sleep Timer" accent="#7A6FF0" />
++<card spec="1" label="Sleep Timer" accent="#D8A65E" />
+diff --git a/launcher/app/build.gradle b/launcher/app/build.gradle
+index b5cf71f..de25d51 100644
+--- a/launcher/app/build.gradle
++++ b/launcher/app/build.gradle
+@@ -15,6 +15,19 @@ android {
+         versionName '2.7'
+     }
+ 
++    signingConfigs {
++        debug {
++            // tv-home: one fixed key from the build environment, so every build installs over the last one.
++            def ks = System.getenv('TVHOME_KEYSTORE')
++            if (ks) {
++                storeFile file(ks)
++                storePassword 'android'
++                keyAlias 'androiddebugkey'
++                keyPassword 'android'
++            }
++        }
++    }
++
+     buildTypes {
+         release {
+             // R8 strips and optimises the code (AndroidX included): smaller APK, faster start on a slow TV CPU.
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java b/launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java
+index eb56deb..d0f9b70 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/AppAdapter.java
+@@ -78,6 +78,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+         int ambient;
+         /** uniform_tiles card fill, top and bottom colour; null until sampled from the icon. */
+         int[] backdrop;
++        /** tv-home mono_icons: the icon in one tone; null until first drawn. */
++        Drawable mono;
+ 
+         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
+             this(APP, label, component, banner, icon, null, 0);
+@@ -293,7 +295,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+             if (!seen.add(pkg + '\n' + label)) continue;
+             Drawable banner = null;
+             // uniform_tiles draws the icon, so an app's banner is never loaded. A module card keeps its banner.
+-            if (!(uniformTiles && card == null)) {
++            // tv-home: logo_cutout draws a module card's icon like every other tile, never its own banner.
++            if (!(uniformTiles && (card == null || Config.logoCutout))) {
+                 banner = bundledBanner(appBanners.get(pkg));
+                 if (banner == null) banner = loadBanner(pm, ri);
+             }
+@@ -464,7 +467,13 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+         // nothing on every frame; keep it under banners with transparent parts and under icon tiles.
+         h.card.setBackground(e.banner != null && e.banner.getOpacity() == PixelFormat.OPAQUE ? null : h.cardBackground);
+         if (uniformTiles && e.banner == null) {
+-            if (e.backdrop == null) e.backdrop = backdrop(e.icon, ambientColorAt(position));
++            if (e.backdrop == null) {
++                int t = Config.tileColor;
++                // tv-home: a theme's tile_color gives every card the same fill, a touch darker at the bottom.
++                e.backdrop = t != 0
++                        ? new int[] {t, 0xFF000000 | (((t >> 16) & 0xFF) * 7 / 10) << 16 | (((t >> 8) & 0xFF) * 7 / 10) << 8 | (t & 0xFF) * 7 / 10}
++                        : backdrop(e.icon, ambientColorAt(position));
++            }
+             h.card.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, e.backdrop));
+         }
+         if (e.banner != null) {
+@@ -475,7 +484,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+         } else {
+             h.banner.setImageDrawable(null);
+             h.banner.setVisibility(View.GONE);
+-            h.icon.setImageDrawable(e.icon);
++            h.icon.setImageDrawable(uniformTiles && (Config.monoIcons || Config.logoCutout) ? monoIcon(e, h.icon.getContext()) : e.icon);
+             h.icon.setVisibility(View.VISIBLE);
+             h.label.setText(e.label);
+             h.label.setVisibility(uniformTiles ? View.GONE : View.VISIBLE);
+@@ -645,8 +654,110 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+         return !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
+     }
+ 
+-    /** A vivid colour sampled from the app's banner (or icon), cached per entry; a card's accent when it set one. */
+-    int ambientColorAt(int position) {
++    /**
++     * tv-home mono_icons: the app's mark in one light tone. Uses an adaptive icon's foreground layer; a
++     * full-bleed icon keeps whatever stands out from its corner colour, and a shape on transparency keeps
++     * its main colour while parts in another colour (YouTube's triangle, Spotify's waves) are cut out.
++     */
++    /** The w x h mark scaled to fit side x side (never wider than the square), centred. */
++    private static android.graphics.RectF scaledInto(int w, int h, int side) {
++        float s = Math.min((float) side / w, (float) side / h);
++        float dw = w * s, dh = h * s;
++        return new android.graphics.RectF((side - dw) / 2f, (side - dh) / 2f, (side + dw) / 2f, (side + dh) / 2f);
++    }
++
++    private static Drawable monoIcon(Entry e, Context ctx) {
++        if (e.mono != null) return e.mono;
++        Resources res = ctx.getResources();
++        // tv-home: the icon at the highest density the app ships (a TV loads xhdpi, 96 px), so a big tile stays sharp.
++        Drawable src = e.icon;
++        if (e.component != null) {
++            try {
++                PackageManager pm = ctx.getPackageManager();
++                android.content.pm.ActivityInfo ai = pm.getActivityInfo(e.component, 0);
++                int id = ai.getIconResource();
++                Drawable hi = id == 0 ? null : pm.getResourcesForApplication(ai.applicationInfo)
++                        .getDrawableForDensity(id, DisplayMetrics.DENSITY_XXXHIGH, null);
++                if (hi != null) src = hi;
++            } catch (PackageManager.NameNotFoundException | Resources.NotFoundException ignored) {
++            }
++        }
++        if (src instanceof android.graphics.drawable.AdaptiveIconDrawable
++                && ((android.graphics.drawable.AdaptiveIconDrawable) src).getForeground() != null) {
++            src = ((android.graphics.drawable.AdaptiveIconDrawable) src).getForeground();
++        }
++        final int n = 512;
++        Bitmap bmp = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888);
++        Canvas cv = new Canvas(bmp);
++        Rect old = new Rect(src.getBounds());
++        src.setBounds(0, 0, n, n);
++        src.draw(cv);
++        src.setBounds(old);
++        int[] px = new int[n * n];
++        bmp.getPixels(px, 0, n, 0, 0, n, n);
++        int[] corners = {px[4 * n + 4], px[4 * n + n - 5], px[(n - 5) * n + 4], px[(n - 5) * n + n - 5]};
++        boolean fullBleed = true;
++        int br = 0, bg = 0, bb = 0;
++        for (int c : corners) {
++            if (Color.alpha(c) < 200) fullBleed = false;
++            br += Color.red(c); bg += Color.green(c); bb += Color.blue(c);
++        }
++        int ref, keepNear;
++        if (fullBleed) {
++            ref = Color.rgb(br / 4, bg / 4, bb / 4);
++            keepNear = 0;   // keep what differs from the background
++        } else {
++            // Most common colour among the opaque pixels, in 4-bit buckets.
++            int[] count = new int[4096];
++            int best = 0;
++            for (int c : px) {
++                if (Color.alpha(c) < 128) continue;
++                int k = (Color.red(c) >> 4) << 8 | (Color.green(c) >> 4) << 4 | (Color.blue(c) >> 4);
++                if (++count[k] > count[best]) best = k;
++            }
++            ref = Color.rgb(((best >> 8) & 15) * 17, ((best >> 4) & 15) * 17, (best & 15) * 17);
++            keepNear = 1;   // keep the main colour, cut out the rest
++        }
++        final int tone = 0x00F2F2F7;
++        for (int i = 0; i < px.length; i++) {
++            int c = px[i];
++            int a = Color.alpha(c);
++            if (a == 0) { px[i] = 0; continue; }
++            int dr = Color.red(c) - Color.red(ref), dg = Color.green(c) - Color.green(ref), db = Color.blue(c) - Color.blue(ref);
++            float d = (float) Math.sqrt(dr * dr + dg * dg + db * db);
++            float far = Math.max(0f, Math.min(1f, (d - 40f) / 70f));
++            // logo_cutout keeps a transparent-backed mark whole and in colour; only a full-bleed square loses its ground.
++            float k = Config.logoCutout && !fullBleed ? 1f : keepNear == 1 ? 1f - far : far;
++            px[i] = Math.round(a * k) << 24 | (Config.logoCutout ? c & 0xFFFFFF : tone);
++        }
++        bmp.setPixels(px, 0, n, 0, 0, n, n);
++        // tv-home: crop to the mark and centre it in a square, so every logo fills the same space whatever padding
++        // its icon had (Disney+ and Prime Video ship small marks in big squares).
++        int minX = n, minY = n, maxX = -1, maxY = -1;
++        for (int y = 0; y < n; y++) {
++            for (int x = 0; x < n; x++) {
++                if ((px[y * n + x] >>> 24) > 40) {
++                    if (x < minX) minX = x;
++                    if (x > maxX) maxX = x;
++                    if (y < minY) minY = y;
++                    if (y > maxY) maxY = y;
++                }
++            }
++        }
++        if (maxX > minX && maxY > minY) {
++            int w = maxX - minX + 1, h = maxY - minY + 1;
++            // Wide wordmarks sit in a wider box than square marks, so their height matches the others by eye.
++            int side = Math.round(Math.max(w * 0.62f, h) * 1.1f);
++            Bitmap fit = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888);
++            new Canvas(fit).drawBitmap(Bitmap.createBitmap(bmp, minX, minY, w, h),
++                    null, scaledInto(w, h, side), null);
++            bmp = fit;
++        }
++        e.mono = new android.graphics.drawable.BitmapDrawable(res, bmp);
++        return e.mono;
++    }
++
++    /** A vivid colour sampled from the app's banner (or icon), cached per entry; a card's accent when it set one. */    int ambientColorAt(int position) {
+         if (position < 0 || position >= items.size()) return 0xFF444444;
+         Entry e = items.get(position);
+         if (e.ambient == 0) {
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/ClockScene.java b/launcher/app/src/main/java/com/gathin/tvhome/ClockScene.java
+index 111304c..5ea2309 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/ClockScene.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/ClockScene.java
+@@ -100,6 +100,17 @@ final class ClockScene {
+         } catch (RuntimeException e) {
+             return;
+         }
++        // tv-home: screensaver_clock false leaves the picture alone, no clock or date over it.
++        if (!Config.screensaverClock) content.setVisibility(View.INVISIBLE);
++        // tv-home: a theme's screensaver.jpg stays still behind the clock, whatever Home's own wallpaper is.
++        File dir = Config.dir(ctx);
++        File photo = dir != null ? new File(dir, "screensaver.jpg") : null;
++        if (photo != null && photo.isFile()) {
++            wallpaperFile = photo;
++            wallpaperShade = (cfg.clockWallpaperDim * 255 / 100) << 24;
++            wallpaperRes = ctx.getResources();
++            return;
++        }
+         if (!cfg.clockWallpaper) {
+             // clock_glow false: plain black behind the clock (OLED); the clock itself still moves every minute.
+             if (!cfg.clockGlow) {
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/Config.java b/launcher/app/src/main/java/com/gathin/tvhome/Config.java
+index be67171..7b7b4be 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/Config.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/Config.java
+@@ -141,6 +141,24 @@ final class Config {
+     final boolean libraryOkOpens;
+     /** Icon on a card tinted from that icon, instead of the app's banner (config.xml uniform_tiles). */
+     final boolean uniformTiles;
++    /** tv-home: one fill for every uniform_tiles card, #RRGGBB (theme tile_color); 0 keeps the per-icon tint. */
++    static int tileColor;
++    /** tv-home: every uniform_tiles icon in one light tone, its shape kept (theme mono_icons). */
++    static boolean monoIcons;
++    /** tv-home: the clock and date on the screensaver (theme screensaver_clock, true by default). */
++    static boolean screensaverClock = true;
++    /** tv-home: minute of the day the TV goes to standby if it is on (theme auto_off_time "HH:MM"); -1 is off. */
++    static int autoOffMinute = -1;
++    /** tv-home: one accent for every day, #RRGGBB (theme home_accent): focus glass, greeting, date; 0 is plain white. */
++    static int homeAccent;
++    /** tv-home: the clock in the system serif (theme clock_serif). */
++    static boolean clockSerif;
++    /** tv-home: each icon's own background cut away, the logo kept in its colours (theme logo_cutout). */
++    static boolean logoCutout;
++    /** tv-home: the greeting under the clock and date instead of above them (theme greeting_below). */
++    static boolean greetingBelow;
++    /** tv-home: the date as October 25th, Sunday (theme date_ordinal). */
++    static boolean dateOrdinal;
+     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
+     final int backgroundColor;
+     /** Time-of-day backdrop, 0 to 100 (config.xml, sky_intensity); 0 keeps the plain background. */
+@@ -436,6 +454,15 @@ final class Config {
+         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
+         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
+         boolean uniformTiles = res.getBoolean(R.bool.uniform_tiles);
++        tileColor = 0;
++        monoIcons = false;
++        screensaverClock = true;
++        autoOffMinute = -1;
++        homeAccent = 0;
++        clockSerif = false;
++        logoCutout = false;
++        greetingBelow = false;
++        dateOrdinal = false;
+         int background = 0xFF000000;
+         int skyIntensity = res.getInteger(R.integer.sky_intensity);
+         int[] settingsKeycodes = res.getIntArray(R.array.settings_key_keycodes);
+@@ -535,6 +562,19 @@ final class Config {
+             librarySelection = bool(json, "app_library_selection", librarySelection);
+             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
+             uniformTiles = bool(json, "uniform_tiles", uniformTiles);
++            tileColor = color(json, "tile_color", 0);
++            monoIcons = bool(json, "mono_icons", false);
++            screensaverClock = bool(json, "screensaver_clock", true);
++            homeAccent = color(json, "home_accent", 0);
++            clockSerif = bool(json, "clock_serif", false);
++            logoCutout = bool(json, "logo_cutout", false);
++            greetingBelow = bool(json, "greeting_below", false);
++            dateOrdinal = bool(json, "date_ordinal", false);
++            String off = string(json, "auto_off_time", "");
++            if (off.matches("\\d{1,2}:\\d{2}")) {
++                int h = Integer.parseInt(off.split(":")[0]), m = Integer.parseInt(off.split(":")[1]);
++                if (h < 24 && m < 60) autoOffMinute = h * 60 + m;
++            }
+             background = color(json, "background_color", background);
+             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
+             settingsKeycodes = intArray(json, "settings_key_keycodes", settingsKeycodes);
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/GlassView.java b/launcher/app/src/main/java/com/gathin/tvhome/GlassView.java
+index 0fd2b6c..bff5638 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/GlassView.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/GlassView.java
+@@ -54,8 +54,10 @@ public class GlassView extends View {
+             glowRgb = argb & 0xFFFFFF;
+             glowAlpha = 0x70;
+             // The rim is the accent lifted towards white, so the edge still reads as glass, not paint.
+-            int r = (((glowRgb >> 16) & 0xFF) + 255 * 2) / 3, g = (((glowRgb >> 8) & 0xFF) + 255 * 2) / 3,
+-                    b = ((glowRgb & 0xFF) + 255 * 2) / 3;
++            // tv-home: an everyday home_accent keeps more of its own colour than a festival's (one part white, not two).
++            int w = argb == Config.homeAccent ? 1 : 2;
++            int r = (((glowRgb >> 16) & 0xFF) + 255 * w) / (w + 1), g = (((glowRgb >> 8) & 0xFF) + 255 * w) / (w + 1),
++                    b = ((glowRgb & 0xFF) + 255 * w) / (w + 1);
+             rim.setColor(0xE6000000 | (r << 16) | (g << 8) | b);
+         }
+         invalidate();
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java b/launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java
+index 016d41d..30cec03 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java
+@@ -124,6 +124,7 @@ public class HomeKeyService extends AccessibilityService {
+     @Override
+     public void onDestroy() {
+         if (running == this) running = null;
++        handler.removeCallbacks(autoOff);
+         stopWaitingForUnlock();
+         if (screenOnReceiver != null) unregisterReceiver(screenOnReceiver);
+         if (standbyExit != null) {
+@@ -180,6 +181,8 @@ public class HomeKeyService extends AccessibilityService {
+         appKeys = RemoteKeys.parseAppKeys(config.appKeys);
+         appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
+         RemoteKeys.applyKeyFilter(this, config.keyFilter);
++        handler.removeCallbacks(autoOff);
++        if (Config.autoOffMinute >= 0) handler.post(autoOff);
+         stockHome.clear();
+         stockHomePackage = config.stockHomeRedirect;
+         if (!config.stockHomeRedirect.isEmpty()) {
+@@ -339,6 +342,30 @@ public class HomeKeyService extends AccessibilityService {
+         }
+     }
+ 
++    /**
++     * tv-home auto_off_time: checked every 30 s while the TV is awake (the check sleeps with the TV); in the ten
++     * minutes from that time, once a day, a TV that is still on goes to standby through the accessibility lock
++     * action, as the sleep-timer add-on does.
++     */
++    private final Runnable autoOff = new Runnable() {
++        @Override
++        public void run() {
++            int at = Config.autoOffMinute;
++            if (at < 0) return;
++            java.util.Calendar now = java.util.Calendar.getInstance();
++            int minute = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE);
++            int day = now.get(java.util.Calendar.YEAR) * 1000 + now.get(java.util.Calendar.DAY_OF_YEAR);
++            SharedPreferences prefs = getSharedPreferences("auto_off", MODE_PRIVATE);
++            PowerManager power = getSystemService(PowerManager.class);
++            if (minute >= at && minute < at + 10 && prefs.getInt("day", -1) != day
++                    && power != null && power.isInteractive() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
++                prefs.edit().putInt("day", day).apply();
++                performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN);
++            }
++            handler.postDelayed(this, 30_000L);
++        }
++    };
++
+     static boolean isShortPress(long downTime, long upTime, long longPressTimeout) {
+         return upTime - downTime < longPressTimeout;
+     }
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java b/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+index 880d15f..f927917 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java
+@@ -422,6 +422,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
+         glass = findViewById(R.id.glass);
+         glass.setStyle(cfg.glassStyle);
+         if (festive) glass.setAccent(festival.accentColor());
++        else if (Config.homeAccent != 0) glass.setAccent(Config.homeAccent);
+         ambient = findViewById(R.id.ambient);
+         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
+         // a fade renders it into a full-screen offscreen buffer first.
+@@ -449,6 +450,43 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
+         greeting = findViewById(R.id.greeting);
+         clockBlock = findViewById(R.id.leftBlock);
+         greetingColor = greeting.getCurrentTextColor();
++        if (Config.dateOrdinal) {
++            // tv-home: the date (and the line before it) centred on the clock's height, not sat on its baseline.
++            LinearLayout clockRow = (LinearLayout) findViewById(R.id.clock).getParent();
++            clockRow.setBaselineAligned(false);
++            clockRow.setGravity(Gravity.CENTER_VERTICAL);
++            View dateColumn = (View) findViewById(R.id.date).getParent();
++            for (View v : new View[]{dateColumn, findViewById(R.id.clockDivider)}) {
++                if (v.getLayoutParams() instanceof LinearLayout.LayoutParams) {
++                    LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) v.getLayoutParams();
++                    lp.gravity = Gravity.CENTER_VERTICAL;
++                    lp.topMargin = 0;
++                    lp.bottomMargin = 0;
++                    v.setLayoutParams(lp);
++                }
++            }
++        }
++        if (Config.greetingBelow) {
++            // tv-home greeting_below: the time leads; the greeting closes the header under the date.
++            ViewGroup header = (ViewGroup) greeting.getParent();
++            header.removeView(greeting);
++            header.addView(greeting);
++            greeting.setPadding(0, Math.round(10 * density), 0, 0);
++        }
++        if (Config.homeAccent != 0) {
++            // tv-home home_accent: the greeting, date and divider in the accent, softened like the stock dimmed whites.
++            int accent = Config.homeAccent & 0xFFFFFF;
++            greetingColor = 0xD9000000 | accent;
++            ((TextView) findViewById(R.id.date)).setTextColor(0xCC000000 | accent);
++            findViewById(R.id.clockDivider).setBackgroundColor(0x80000000 | accent);
++        }
++        if (Config.clockSerif) {
++            android.graphics.Typeface serif = android.graphics.Typeface.create("serif", android.graphics.Typeface.NORMAL);
++            TextView clockText = findViewById(R.id.clock);
++            clockText.setTypeface(serif);
++            clockText.setLetterSpacing(-0.01f);
++            ((TextView) findViewById(R.id.ampm)).setTypeface(serif);
++        }
+         if (!cfg.showGreeting) greeting.setVisibility(View.GONE);
+         if (cfg.headerWhite) {
+             // The clock's own white for the date and the line before it, instead of their dimmed whites.
+@@ -1463,7 +1501,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
+         drop();
+         reordering = false;
+         adapter.setReordering(false);
+-        glass.setAccent(festive ? festival.accentColor() : 0);
++        glass.setAccent(festive ? festival.accentColor() : Config.homeAccent);
+         btnReorder.setActivated(false);
+         List<String> keys = adapter.movableKeys();
+         List<String> before = orderAtStart;
+@@ -2436,6 +2474,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
+     }
+ 
+     private void updateGreeting() {
++        if (Config.dateOrdinal) {
++            // tv-home date_ordinal: "October 25th, Sunday". Android's patterns have no ordinal, so the suffix is
++            // written in as a literal, renewed with the greeting (which runs again as the day turns).
++            int day = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH);
++            String suffix = day % 100 >= 11 && day % 100 <= 13 ? "th"
++                    : day % 10 == 1 ? "st" : day % 10 == 2 ? "nd" : day % 10 == 3 ? "rd" : "th";
++            android.widget.TextClock date = findViewById(R.id.date);
++            String pattern = "MMMM d'" + suffix + "', EEEE";
++            date.setFormat12Hour(pattern);
++            date.setFormat24Hour(pattern);
++            date.setAllCaps(false);
++        }
+         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+         int res;
+         // Locale-specific day parts (app language on Android 13+).
+diff --git a/launcher/app/src/main/java/com/gathin/tvhome/ThemeFiles.java b/launcher/app/src/main/java/com/gathin/tvhome/ThemeFiles.java
+index 18fded9..497d330 100644
+--- a/launcher/app/src/main/java/com/gathin/tvhome/ThemeFiles.java
++++ b/launcher/app/src/main/java/com/gathin/tvhome/ThemeFiles.java
+@@ -18,6 +18,7 @@ final class ThemeFiles {
+         if (segments.size() == 1) {
+             String name = segments.get(0);
+             return Config.FILE_NAME.equals(name) || "wallpaper.jpg".equals(name) || "theme_revision".equals(name)
++                    || "screensaver.jpg".equals(name)
+                     ? name : null;
+         }
+         if (segments.size() == 2 && WALLPAPERS.equals(segments.get(0))
+diff --git a/tools/theme.ps1 b/tools/theme.ps1
+index 3022679..6978234 100644
+--- a/tools/theme.ps1
++++ b/tools/theme.ps1
+@@ -69,6 +69,9 @@ try { Get-Content $config -Raw | ConvertFrom-Json | Out-Null } catch { throw "$c
+ & $py -I tv.py (Put 'config.json')
+ $wall = Join-Path $Theme 'wallpaper.jpg'
+ if (Test-Path $wall) { & $py -I b64push.py $wall "$tmp-wallpaper.jpg"; & $py -I tv.py (Put 'wallpaper.jpg') } else { & $py -I tv.py (Drop 'wallpaper.jpg') | Out-Null }
++$saver = Join-Path $Theme 'screensaver.jpg'
++# tv-home: the screensaver's still photo.
++if (Test-Path $saver) { & $py -I b64push.py $saver "$tmp-screensaver.jpg"; & $py -I tv.py (Put 'screensaver.jpg') } else { & $py -I tv.py (Drop 'screensaver.jpg') | Out-Null }
+ & $py -I tv.py $clearWallpapers | Out-Null
+ $wallpapers = Join-Path $Theme 'wallpapers'
+ if (Test-Path $wallpapers -PathType Container) {

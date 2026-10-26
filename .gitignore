@@ -1,0 +1,6 @@
+.upstream/
+*.pyc
+__pycache__/
+preview/
+skins/.current
+skins/*/screensaver.jpg

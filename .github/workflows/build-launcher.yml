@@ -1,0 +1,63 @@
+name: build-launcher
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Gathin23/cleanyourtv commit to build
+        default: 575d73f0f30c329aa7ebaea2bc863943fd9bf7f9
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Gathin23/cleanyourtv
+          ref: ${{ inputs.ref }}
+      - uses: actions/checkout@v4
+        with:
+          path: tv-home
+      - name: Apply tv-home patches
+        run: for p in tv-home/patches/*.patch; do git apply "$p"; done
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      # Same signing key every build, so updates install over the previous version.
+      - name: Signing key
+        env:
+          KEY_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        run: |
+          mkdir -p ~/.android
+          if [ -n "$KEY_B64" ]; then echo "$KEY_B64" | base64 -d > ~/.android/debug.keystore; else
+            keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey \
+              -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            mkdir -p newkey && cp ~/.android/debug.keystore newkey/; fi
+      - name: Build
+        working-directory: launcher
+        env:
+          TVHOME_KEYSTORE: /home/runner/.android/debug.keystore
+        run: ./gradlew --no-daemon assembleRelease
+      - name: Build add-ons
+        env:
+          TVHOME_KEYSTORE: /home/runner/.android/debug.keystore
+        run: for a in sleep-timer quiet-hours; do (cd addons/$a && chmod +x gradlew && ./gradlew --no-daemon assembleRelease); done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sleep-timer-apk
+          path: addons/sleep-timer/app/build/outputs/apk/release/app-release.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quiet-hours-apk
+          path: addons/quiet-hours/app/build/outputs/apk/release/app-release.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tvhome-apk
+          path: launcher/app/build/outputs/apk/release/app-release.apk
+      - uses: actions/upload-artifact@v4
+        if: hashFiles('newkey/debug.keystore') != ''
+        with:
+          name: new-keystore
+          path: newkey/debug.keystore
+          retention-days: 1
+
